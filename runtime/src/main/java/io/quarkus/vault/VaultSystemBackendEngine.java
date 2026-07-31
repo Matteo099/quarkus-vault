@@ -1,11 +1,15 @@
 package io.quarkus.vault;
 
 import java.util.List;
+import java.util.Map;
 
 import jakarta.annotation.Nullable;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
+import io.quarkus.vault.client.api.sys.capabilitiesself.VaultSysCapabilitiesSelfCapabilitiesSelfResponse;
+import io.quarkus.vault.client.api.sys.internal.VaultSysInternalVisibleMountInfo;
+import io.quarkus.vault.client.api.sys.mounts.VaultSysMountsMountInfo;
 import io.quarkus.vault.runtime.config.VaultRuntimeConfig;
 import io.quarkus.vault.sys.EnableEngineOptions;
 import io.quarkus.vault.sys.VaultHealth;
@@ -21,7 +25,8 @@ import io.quarkus.vault.sys.VaultTuneInfo;
 /**
  * This service provides access to the system backend.
  *
- * @implNote Wrapper for reactive engine. Request timeouts are accounted for in Vault client.
+ * @implNote Wrapper for reactive engine. Request timeouts are accounted for in
+ *           Vault client.
  * @see VaultRuntimeConfig
  */
 @ApplicationScoped
@@ -37,8 +42,10 @@ public class VaultSystemBackendEngine {
     /**
      * Initializes a new Vault.
      *
-     * @param secretShares specifies the number of shares to split the master key into.
-     * @param secretThreshold specifies the number of shares required to reconstruct the master key.
+     * @param secretShares specifies the number of shares to split the master key
+     *        into.
+     * @param secretThreshold specifies the number of shares required to reconstruct
+     *        the master key.
      * @return Vault Init.
      */
     public VaultInit init(int secretShares, int secretThreshold) {
@@ -48,7 +55,8 @@ public class VaultSystemBackendEngine {
     /**
      * Check the health status of Vault.
      * Returns Vault health status code only by using HTTP HEAD requests.
-     * It is faster than calling {@link #healthStatus() healthStatus()} method which uses HTTP GET to return a complete
+     * It is faster than calling {@link #healthStatus() healthStatus()} method which
+     * uses HTTP GET to return a complete
      * VaultHealthStatus state.
      *
      * @return Vault Health Status.
@@ -158,6 +166,14 @@ public class VaultSystemBackendEngine {
         return engine.isEngineMounted(mount).await().indefinitely();
     }
 
+    public Map<String, VaultSysMountsMountInfo> listMounts() {
+        return engine.listMounts().await().indefinitely();
+    }
+
+    public VaultSysInternalVisibleMountInfo listVisibleMounts() {
+        return engine.listVisibleMounts().await().indefinitely();
+    }
+
     /**
      * Enables a secret engine at a specific mount.
      *
@@ -247,6 +263,18 @@ public class VaultSystemBackendEngine {
      */
     public void removePlugin(String type, String name, @Nullable String version) {
         engine.removePlugin(type, name, version).await().indefinitely();
+    }
+
+    /**
+     * Gets details for a specific plugin.
+     *
+     * @param type Plugin type.
+     * @param name Plugin name.
+     * @param version Plugin version.
+     * @return Plugin info.
+     */
+    public VaultSysCapabilitiesSelfCapabilitiesSelfResponse getCapabilitiesSelf(List<String> paths) {
+        return engine.getCapabilitiesSelf(paths).await().indefinitely();
     }
 
 }

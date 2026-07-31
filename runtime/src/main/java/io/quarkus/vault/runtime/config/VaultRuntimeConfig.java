@@ -5,6 +5,7 @@ import static io.quarkus.vault.client.logging.LogConfidentialityLevel.MEDIUM;
 import static io.quarkus.vault.runtime.config.VaultAuthenticationType.APPROLE;
 import static io.quarkus.vault.runtime.config.VaultAuthenticationType.AWS_IAM;
 import static io.quarkus.vault.runtime.config.VaultAuthenticationType.GITHUB;
+import static io.quarkus.vault.runtime.config.VaultAuthenticationType.JWT;
 import static io.quarkus.vault.runtime.config.VaultAuthenticationType.KUBERNETES;
 import static io.quarkus.vault.runtime.config.VaultAuthenticationType.NONE;
 import static io.quarkus.vault.runtime.config.VaultAuthenticationType.USERPASS;
@@ -36,6 +37,7 @@ public interface VaultRuntimeConfig {
     String DEFAULT_KUBERNETES_JWT_TOKEN_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/token";
     String DEFAULT_KV_SECRET_ENGINE_MOUNT_PATH = "secret";
     String DEFAULT_TRANSIT_SECRET_ENGINE_MOUNT_PATH = "transit";
+    String DEFAULT_IDENTITY_SECRET_ENGINE_MOUNT_PATH = "identity";
     String KV_SECRET_ENGINE_VERSION_V2 = "2";
     String DEFAULT_RENEW_GRACE_PERIOD = "1H";
     String DEFAULT_SECRET_CONFIG_CACHE_PERIOD = "10M";
@@ -49,6 +51,7 @@ public interface VaultRuntimeConfig {
     String DEFAULT_GITHUB_AUTH_MOUNT_PATH = "github";
     String DEFAULT_AWS_IAM_AUTH_MOUNT_PATH = "aws";
     String DEFAULT_AWS_IAM_STS_URL = "https://sts.amazonaws.com";
+    String DEFAULT_JWT_AUTH_MOUNT_PATH = "oidc";
 
     @WithName("kv-secret-engine")
     @ConfigDocMapKey("alias")
@@ -57,10 +60,13 @@ public interface VaultRuntimeConfig {
     /**
      * Microprofile Config ordinal.
      * <p>
-     * This is provided as an alternative to the `config_ordinal` property defined by the specification, to
-     * make it easier and more natural for applications to override the default ordinal.
+     * This is provided as an alternative to the `config_ordinal` property defined
+     * by the specification, to
+     * make it easier and more natural for applications to override the default
+     * ordinal.
      * <p>
-     * The default value is higher than the file system or jar ordinals, but lower than env vars.
+     * The default value is higher than the file system or jar ordinals, but lower
+     * than env vars.
      */
     @WithDefault(DEFAULT_CONFIG_ORDINAL)
     int configOrdinal();
@@ -70,7 +76,8 @@ public interface VaultRuntimeConfig {
      * <p>
      * Example: https://localhost:8200
      * <p>
-     * See also the documentation for the `kv-secret-engine-mount-path` property for some insights on how
+     * See also the documentation for the `kv-secret-engine-mount-path` property for
+     * some insights on how
      * the full Vault url gets built.
      *
      * @asciidoclet
@@ -92,16 +99,23 @@ public interface VaultRuntimeConfig {
     /**
      * Renew grace period duration.
      * <p>
-     * This value if used to extend a lease before it expires its ttl, or recreate a new lease before the current
+     * This value if used to extend a lease before it expires its ttl, or recreate a
+     * new lease before the current
      * lease reaches its max_ttl.
      * By default Vault leaseDuration is equal to 7 days (ie: 168h or 604800s).
-     * If a connection pool maxLifetime is set, it is reasonable to set the renewGracePeriod to be greater
-     * than the maxLifetime, so that we are sure we get a chance to renew leases before we reach the ttl.
-     * In any case you need to make sure there will be attempts to fetch secrets within the renewGracePeriod,
-     * because that is when the renewals will happen. This is particularly important for db dynamic secrets
-     * because if the lease reaches its ttl or max_ttl, the password of the db user will become invalid and
+     * If a connection pool maxLifetime is set, it is reasonable to set the
+     * renewGracePeriod to be greater
+     * than the maxLifetime, so that we are sure we get a chance to renew leases
+     * before we reach the ttl.
+     * In any case you need to make sure there will be attempts to fetch secrets
+     * within the renewGracePeriod,
+     * because that is when the renewals will happen. This is particularly important
+     * for db dynamic secrets
+     * because if the lease reaches its ttl or max_ttl, the password of the db user
+     * will become invalid and
      * it will be not longer possible to log in.
-     * This value should also be smaller than the ttl, otherwise that would mean that we would try to recreate
+     * This value should also be smaller than the ttl, otherwise that would mean
+     * that we would try to recreate
      * leases all the time.
      *
      * @asciidoclet
@@ -113,7 +127,8 @@ public interface VaultRuntimeConfig {
     /**
      * Vault config source cache period.
      * <p>
-     * Properties fetched from vault as MP config will be kept in a cache, and will not be fetched from vault
+     * Properties fetched from vault as MP config will be kept in a cache, and will
+     * not be fetched from vault
      * again until the expiration of that period.
      * This property is ignored if `secret-config-kv-path` is not set.
      *
@@ -157,7 +172,8 @@ public interface VaultRuntimeConfig {
     Map<String, KvPathConfig> secretConfigKvPathPrefix();
 
     /**
-     * Maximum number of attempts when fetching MP Config properties on the initial connection.
+     * Maximum number of attempts when fetching MP Config properties on the initial
+     * connection.
      */
     @WithDefault("1")
     int mpConfigInitialAttempts();
@@ -167,7 +183,8 @@ public interface VaultRuntimeConfig {
      * Possible values are:
      * <p>
      * * low: display all secrets.
-     * * medium: display only usernames and lease ids (ie: passwords and tokens are masked).
+     * * medium: display only usernames and lease ids (ie: passwords and tokens are
+     * masked).
      * * high: hide lease ids and dynamic credentials username.
      *
      * @asciidoclet
@@ -188,21 +205,28 @@ public interface VaultRuntimeConfig {
     /**
      * KV secret engine path.
      * <p>
-     * This value is used when building the url path in the KV secret engine programmatic access
-     * (i.e. `VaultKVSecretEngine`) and the vault config source (i.e. fetching configuration properties from Vault).
+     * This value is used when building the url path in the KV secret engine
+     * programmatic access
+     * (i.e. `VaultKVSecretEngine`) and the vault config source (i.e. fetching
+     * configuration properties from Vault).
      * <p>
      * For a v2 KV secret engine (default - see `kv-secret-engine-version property`)
-     * the full url is built from the expression `<url>/v1/</kv-secret-engine-mount-path>/data/...`.
+     * the full url is built from the expression
+     * `<url>/v1/</kv-secret-engine-mount-path>/data/...`.
      * <p>
      * With property `quarkus.vault.url=https://localhost:8200`, the following call
-     * `vaultKVSecretEngine.readSecret("foo/bar")` would lead eventually to a `GET` on Vault with the following
+     * `vaultKVSecretEngine.readSecret("foo/bar")` would lead eventually to a `GET`
+     * on Vault with the following
      * url: `https://localhost:8200/v1/secret/data/foo/bar`.
      * <p>
-     * With a KV secret engine v1, the url changes to: `<url>/v1/</kv-secret-engine-mount-path>/...`.
+     * With a KV secret engine v1, the url changes to:
+     * `<url>/v1/</kv-secret-engine-mount-path>/...`.
      * <p>
-     * The same logic is applied to the Vault config source. With `quarkus.vault.secret-config-kv-path=config/myapp`
+     * The same logic is applied to the Vault config source. With
+     * `quarkus.vault.secret-config-kv-path=config/myapp`
      * The secret properties would be fetched from Vault using a `GET` on
-     * `https://localhost:8200/v1/secret/data/config/myapp` for a KV secret engine v2 (or
+     * `https://localhost:8200/v1/secret/data/config/myapp` for a KV secret engine
+     * v2 (or
      * `https://localhost:8200/v1/secret/config/myapp` for a KV secret engine v1).
      * <p>
      * see https://www.vaultproject.io/docs/secrets/kv/index.html
@@ -221,6 +245,16 @@ public interface VaultRuntimeConfig {
      */
     @WithDefault(DEFAULT_TRANSIT_SECRET_ENGINE_MOUNT_PATH)
     String transitSecretEngineMountPath();
+
+    /**
+     * Identity secret engine mount path.
+     * <p>
+     * see https://www.vaultproject.io/docs/secrets/identity/index.html
+     *
+     * @asciidoclet
+     */
+    @WithDefault(DEFAULT_IDENTITY_SECRET_ENGINE_MOUNT_PATH)
+    String identitySecretEngineMountPath();
 
     /**
      * TLS
@@ -243,11 +277,13 @@ public interface VaultRuntimeConfig {
     Duration readTimeout();
 
     /**
-     * List of remote hosts that are not proxied when the client is configured to use a proxy. This
+     * List of remote hosts that are not proxied when the client is configured to
+     * use a proxy. This
      * list serves the same purpose as the JVM {@code nonProxyHosts} configuration.
      *
      * <p>
-     * Entries can use the <i>*</i> wildcard character for pattern matching, e.g <i>*.example.com</i> matches
+     * Entries can use the <i>*</i> wildcard character for pattern matching, e.g
+     * <i>*.example.com</i> matches
      * <i>www.example.com</i>.
      */
     Optional<List<String>> nonProxyHosts();
@@ -264,10 +300,13 @@ public interface VaultRuntimeConfig {
     Integer proxyPort();
 
     /**
-     * List of named credentials providers, such as: `quarkus.vault.credentials-provider.foo.kv-path=mypath`
+     * List of named credentials providers, such as:
+     * `quarkus.vault.credentials-provider.foo.kv-path=mypath`
      * <p>
-     * This defines a credentials provider `foo` returning key `password` from vault path `mypath`.
-     * Once defined, this provider can be used in credentials consumers, such as the Agroal connection pool.
+     * This defines a credentials provider `foo` returning key `password` from vault
+     * path `mypath`.
+     * Once defined, this provider can be used in credentials consumers, such as the
+     * Agroal connection pool.
      * <p>
      * Example: `quarkus.datasource.credentials-provider=foo`
      *
@@ -307,6 +346,8 @@ public interface VaultRuntimeConfig {
             return GITHUB;
         } else if (authentication().isAwsIam()) {
             return AWS_IAM;
+        } else if (authentication().isJwtToken()) {
+            return JWT;
         } else {
             return null;
         }
@@ -320,27 +361,36 @@ public interface VaultRuntimeConfig {
                 + logConfidentialityLevel().maskWithTolerance(authentication().kubernetes().role().orElse(""), MEDIUM) +
                 ", kubernetesJwtTokenPath='" + authentication().kubernetes().jwtTokenPath() + '\'' +
                 ", userpassUsername='"
-                + logConfidentialityLevel().maskWithTolerance(authentication().userpass().username().orElse(""), MEDIUM) + '\''
+                + logConfidentialityLevel().maskWithTolerance(authentication().userpass().username().orElse(""), MEDIUM)
+                + '\''
                 +
                 ", userpassPassword='"
-                + logConfidentialityLevel().maskWithTolerance(authentication().userpass().password().orElse(""), LOW) + '\'' +
+                + logConfidentialityLevel().maskWithTolerance(authentication().userpass().password().orElse(""), LOW)
+                + '\'' +
                 ", appRoleRoleId='"
-                + logConfidentialityLevel().maskWithTolerance(authentication().appRole().roleId().orElse(""), MEDIUM) + '\'' +
+                + logConfidentialityLevel().maskWithTolerance(authentication().appRole().roleId().orElse(""), MEDIUM)
+                + '\'' +
                 ", appRoleSecretId='"
-                + logConfidentialityLevel().maskWithTolerance(authentication().appRole().secretId().orElse(""), LOW) + '\'' +
+                + logConfidentialityLevel().maskWithTolerance(authentication().appRole().secretId().orElse(""), LOW)
+                + '\'' +
                 ", appRoleSecretIdWrappingToken='"
-                + logConfidentialityLevel().maskWithTolerance(authentication().appRole().secretIdWrappingToken().orElse(""),
+                + logConfidentialityLevel().maskWithTolerance(
+                        authentication().appRole().secretIdWrappingToken().orElse(""),
                         LOW)
                 + '\'' +
                 ", githubToken='"
-                + logConfidentialityLevel().maskWithTolerance(authentication().github().token().orElse(""), LOW) + '\'' +
+                + logConfidentialityLevel().maskWithTolerance(authentication().github().token().orElse(""), LOW) + '\''
+                +
                 ", githubTokenWrappingToken='"
                 + logConfidentialityLevel().maskWithTolerance(authentication().github().tokenWrappingToken().orElse(""),
                         LOW)
                 + '\'' +
-                ", clientToken=" + logConfidentialityLevel().maskWithTolerance(authentication().clientToken().orElse(""), LOW) +
+                ", clientToken="
+                + logConfidentialityLevel().maskWithTolerance(authentication().clientToken().orElse(""), LOW) +
                 ", clientTokenWrappingToken="
-                + logConfidentialityLevel().maskWithTolerance(authentication().clientTokenWrappingToken().orElse(""), LOW) +
+                + logConfidentialityLevel().maskWithTolerance(authentication().clientTokenWrappingToken().orElse(""),
+                        LOW)
+                +
                 ", renewGracePeriod=" + renewGracePeriod() +
                 ", cachePeriod=" + secretConfigCachePeriod() +
                 ", logConfidentialityLevel=" + logConfidentialityLevel() +
@@ -397,7 +447,8 @@ public interface VaultRuntimeConfig {
         Optional<List<String>> secretConfigKvPath();
 
         /**
-         * paths to mount as MP config properties. all properties will be prefixed with the key.
+         * paths to mount as MP config properties. all properties will be prefixed with
+         * the key.
          */
         @WithName("secret-config-kv-path")
         @ConfigDocMapKey("prefix")

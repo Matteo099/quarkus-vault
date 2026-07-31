@@ -4,6 +4,7 @@ import org.jboss.jandex.DotName;
 
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.deployment.Feature;
+import io.quarkus.deployment.IsLocalDevelopment;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
@@ -12,6 +13,7 @@ import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.deployment.builditem.RunTimeConfigBuilderBuildItem;
 import io.quarkus.deployment.builditem.SslNativeConfigBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
+import io.quarkus.devui.spi.page.CardPageBuildItem;
 import io.quarkus.smallrye.health.deployment.spi.HealthBuildItem;
 import io.quarkus.vault.VaultAppRoleAuthService;
 import io.quarkus.vault.VaultKVSecretEngine;
@@ -21,7 +23,17 @@ import io.quarkus.vault.VaultSystemBackendEngine;
 import io.quarkus.vault.VaultTOTPSecretEngine;
 import io.quarkus.vault.VaultTransitSecretEngine;
 import io.quarkus.vault.client.common.VaultModel;
-import io.quarkus.vault.runtime.*;
+import io.quarkus.vault.runtime.VaultAppRoleAuthManager;
+import io.quarkus.vault.runtime.VaultConfigHolder;
+import io.quarkus.vault.runtime.VaultCredentialsProvider;
+import io.quarkus.vault.runtime.VaultDynamicCredentialsManager;
+import io.quarkus.vault.runtime.VaultKubernetesAuthManager;
+import io.quarkus.vault.runtime.VaultKvManager;
+import io.quarkus.vault.runtime.VaultPKIManager;
+import io.quarkus.vault.runtime.VaultPKIManagerFactory;
+import io.quarkus.vault.runtime.VaultSystemBackendManager;
+import io.quarkus.vault.runtime.VaultTOTPManager;
+import io.quarkus.vault.runtime.VaultTransitManager;
 import io.quarkus.vault.runtime.client.VaultClientProducer;
 import io.quarkus.vault.runtime.config.VaultBuildTimeConfig;
 import io.quarkus.vault.runtime.config.VaultConfigSourceFactoryBuilder;
@@ -34,6 +46,17 @@ public class VaultProcessor {
     @BuildStep
     FeatureBuildItem feature() {
         return new FeatureBuildItem(FEATURE);
+    }
+
+    @BuildStep(onlyIf = IsLocalDevelopment.class)
+    void createJokesPageOnCard(BuildProducer<CardPageBuildItem> cardsProducer) {
+
+        CardPageBuildItem cardPageBuildItem = new CardPageBuildItem();
+        cardPageBuildItem.setLogo("openbao.svg", "openbao.svg");
+        cardPageBuildItem.addLibraryVersion("io.quarkiverse.vault", "quarkus-vault", "Vault",
+                "https://git.int.sigmaspa.com/projectsjava/ssmsproject/libraries/quarkus-vault");
+
+        cardsProducer.produce(cardPageBuildItem);
     }
 
     @BuildStep
@@ -81,7 +104,8 @@ public class VaultProcessor {
 
     @BuildStep
     void vaultConfigFactory(BuildProducer<RunTimeConfigBuilderBuildItem> runTimeConfigBuilder) {
-        runTimeConfigBuilder.produce(new RunTimeConfigBuilderBuildItem(VaultConfigSourceFactoryBuilder.class.getName()));
+        runTimeConfigBuilder
+                .produce(new RunTimeConfigBuilderBuildItem(VaultConfigSourceFactoryBuilder.class.getName()));
     }
 
     @BuildStep

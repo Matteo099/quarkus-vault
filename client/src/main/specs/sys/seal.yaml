@@ -37,6 +37,7 @@ operations:
 
 - name: unseal
   method: POST
+  authenticated: false
   path: unseal
   bodyFrom: [key, reset, migrate]
   parameters:

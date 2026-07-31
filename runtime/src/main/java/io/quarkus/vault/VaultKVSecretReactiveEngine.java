@@ -3,6 +3,7 @@ package io.quarkus.vault;
 import java.util.List;
 import java.util.Map;
 
+import io.quarkus.vault.client.api.secrets.kv2.VaultSecretsKV2ReadSecretMetadataResultData;
 import io.quarkus.vault.runtime.config.VaultRuntimeConfig;
 import io.smallrye.mutiny.Uni;
 
@@ -46,6 +47,24 @@ public interface VaultKVSecretReactiveEngine {
      * @see VaultKVSecretReactiveEngine#readSecretJson(String, String)
      */
     Uni<Map<String, Object>> readSecretJson(String path);
+
+    Uni<Map<String, Object>> readSecretJson(Integer version, String path);
+
+    Uni<Map<String, Object>> readSecretJson(String alias, Integer version, String path);
+
+    Uni<VaultSecretsKV2ReadSecretMetadataResultData> readSecretMetadata(String path);
+
+    Uni<VaultSecretsKV2ReadSecretMetadataResultData> readSecretMetadata(String alias, String path);
+
+    Uni<Void> updateSecretMetadata(String path, Integer maxVersions, Boolean casRequired,
+            String deleteVersionAfter, Map<String, Object> customMetadata);
+
+    Uni<Void> updateSecretMetadata(String alias, String path, Integer maxVersions, Boolean casRequired,
+            String deleteVersionAfter, Map<String, Object> customMetadata);
+
+    Uni<List<String>> scanSecrets(String path);
+
+    Uni<List<String>> scanSecrets(String alias, String path);
 
     /**
      * Writes the secret at the given path. If the path does not exist, the secret will

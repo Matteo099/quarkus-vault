@@ -2,7 +2,9 @@ package io.quarkus.vault.runtime.client;
 
 import java.nio.file.Path;
 
+import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -11,6 +13,8 @@ import io.quarkus.vault.client.VaultClient;
 import io.quarkus.vault.client.VaultException;
 import io.quarkus.vault.client.auth.VaultAppRoleAuthOptions;
 import io.quarkus.vault.client.auth.VaultGithubAuthOptions;
+import io.quarkus.vault.client.auth.VaultJwtAuthOptions;
+import io.quarkus.vault.client.auth.VaultJwtProvider;
 import io.quarkus.vault.client.auth.VaultKubernetesAuthOptions;
 import io.quarkus.vault.client.auth.VaultStaticClientTokenAuthOptions;
 import io.quarkus.vault.client.auth.VaultUserPassAuthOptions;
@@ -23,6 +27,9 @@ import io.vertx.core.Vertx;
 
 @Singleton
 public class VaultClientProducer {
+
+    @Inject
+    Instance<VaultJwtProvider> jwtProvider;
 
     @Produces
     @Singleton
@@ -81,7 +88,8 @@ public class VaultClientProducer {
                         "authentication properties; remove the other authentication settings or set 'none' to false");
             }
 
-            // no token provider: requests are sent without a token, e.g. through a Vault Agent with auto-auth enabled
+            // no token provider: requests are sent without a token, e.g. through a Vault
+            // Agent with auto-auth enabled
 
         } else if (authConfig.isDirectClientToken()) {
 
@@ -168,6 +176,20 @@ public class VaultClientProducer {
                     // Isolated so that the optional AWS SDK is referenced from exactly one place,
                     // which can be substituted away in native images when the SDK is absent.
                     VaultAwsIamAuthConfigurator.configure(builder, config);
+                    break;
+
+                case JWT:
+                    if (jwtProvider.isUnsatisfied()) {
+                        throw new VaultException(
+                                "JWT authentication selected but no VaultJwtProvider CDI bean found");
+                    }
+
+                    builder.jwt(VaultJwtAuthOptions.builder()
+                            .mountPath(authConfig.jwt().mountPath())
+                            .role(authConfig.jwt().role().orElse(""))
+                            .jwtProvider(jwtProvider.get())
+                            .caching(config.renewGracePeriod())
+                            .build());
                     break;
 
                 default:

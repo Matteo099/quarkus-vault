@@ -5,6 +5,10 @@ import java.util.Map;
 
 import jakarta.annotation.Nullable;
 
+import io.quarkus.vault.client.api.sys.capabilitiesself.VaultSysCapabilitiesSelfCapabilitiesSelfResponse;
+import io.quarkus.vault.client.api.sys.internal.VaultSysInternalVisibleMountInfo;
+import io.quarkus.vault.client.api.sys.mounts.VaultSysMountsMountInfo;
+import io.quarkus.vault.client.api.sys.seal.VaultSysSealStatusResult;
 import io.quarkus.vault.runtime.config.VaultRuntimeConfig;
 import io.quarkus.vault.sys.EnableEngineOptions;
 import io.quarkus.vault.sys.VaultHealth;
@@ -28,8 +32,10 @@ public interface VaultSystemBackendReactiveEngine {
     /**
      * Initializes a new Vault.
      *
-     * @param secretShares specifies the number of shares to split the master key into.
-     * @param secretThreshold specifies the number of shares required to reconstruct the master key.
+     * @param secretShares specifies the number of shares to split the master key
+     *        into.
+     * @param secretThreshold specifies the number of shares required to reconstruct
+     *        the master key.
      * @return Vault Init.
      */
     Uni<VaultInit> init(int secretShares, int secretThreshold);
@@ -37,7 +43,8 @@ public interface VaultSystemBackendReactiveEngine {
     /**
      * Check the health status of Vault.
      * Returns Vault health status code only by using HTTP HEAD requests.
-     * It is faster than calling {@link #healthStatus() healthStatus()} method which uses HTTP GET to return a complete
+     * It is faster than calling {@link #healthStatus() healthStatus()} method which
+     * uses HTTP GET to return a complete
      * VaultHealthStatus state.
      *
      * @return Vault Health Status.
@@ -200,5 +207,13 @@ public interface VaultSystemBackendReactiveEngine {
      * @param version Plugin version.
      */
     Uni<Void> removePlugin(String type, String name, @Nullable String version);
+
+    Uni<Map<String, VaultSysMountsMountInfo>> listMounts();
+
+    Uni<VaultSysInternalVisibleMountInfo> listVisibleMounts();
+
+    Uni<VaultSysCapabilitiesSelfCapabilitiesSelfResponse> getCapabilitiesSelf(List<String> paths);
+
+    Uni<VaultSysSealStatusResult> unseal(String key, Boolean reset, Boolean migrate);
 
 }
