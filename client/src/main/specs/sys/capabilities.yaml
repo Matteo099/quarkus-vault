@@ -1,0 +1,26 @@
+name: CapabilitiesSelf
+category: sys
+mountable: false
+basePath: sys
+
+operations:
+
+  - name: capabilitiesSelf
+    method: POST
+    path: capabilities-self
+    bodyFrom: [paths]
+    parameters:
+      - name: paths
+        type: java.util.List<String>
+    result:
+      kind: leased
+      unwrapUsing: r.getData()
+      unwrappedType: $CapabilitiesSelfResponse
+      dataType: $CapabilitiesSelfResponse
+
+types:
+
+  - name: CapabilitiesSelfResponse
+    properties:
+      - name: capabilities
+        type: java.util.List<String>

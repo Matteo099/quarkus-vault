@@ -11,6 +11,7 @@ import jakarta.enterprise.inject.Produces;
 import io.quarkus.vault.VaultKVSecretReactiveEngine;
 import io.quarkus.vault.client.VaultClient;
 import io.quarkus.vault.client.api.common.VaultRequestFactory;
+import io.quarkus.vault.client.api.secrets.kv2.VaultSecretsKV2ReadSecretMetadataResultData;
 import io.quarkus.vault.runtime.client.Private;
 import io.quarkus.vault.runtime.config.VaultRuntimeConfig;
 import io.quarkus.vault.runtime.kv.KvV1;
@@ -23,15 +24,19 @@ public class VaultKvManager implements VaultKVSecretReactiveEngine {
 
     public static final String DEFAULT = "<default>";
 
+    private VaultClient vaultClient;
+
     @Produces
     @Private
-    public static VaultKvManager privateClientManager(@Private VaultClient vaultClient, VaultConfigHolder vaultConfigHolder) {
+    public static VaultKvManager privateClientManager(@Private VaultClient vaultClient,
+            VaultConfigHolder vaultConfigHolder) {
         return new VaultKvManager(vaultClient, vaultConfigHolder);
     }
 
     private final Map<String, VersionedKv<? extends VaultRequestFactory>> engines = new HashMap<>();
 
     public VaultKvManager(VaultClient vaultClient, VaultConfigHolder vaultConfigHolder) {
+        this.vaultClient = vaultClient;
 
         VaultRuntimeConfig config = vaultConfigHolder.getVaultRuntimeConfig();
 
@@ -55,6 +60,9 @@ public class VaultKvManager implements VaultKVSecretReactiveEngine {
     }
 
     VersionedKv<? extends VaultRequestFactory> getEngine(String alias) {
+        if (engines.get(alias) == null) {
+            putEngine(alias, vaultClient, 2, alias);
+        }
         return Objects.requireNonNull(engines.get(alias));
     }
 
@@ -79,6 +87,26 @@ public class VaultKvManager implements VaultKVSecretReactiveEngine {
     }
 
     @Override
+    public Uni<Map<String, Object>> readSecretJson(Integer version, String path) {
+        return readSecretJson(DEFAULT, version, path);
+    }
+
+    @Override
+    public Uni<Map<String, Object>> readSecretJson(String alias, Integer version, String path) {
+        return getEngine(alias).readSecretJson(version, path);
+    }
+
+    @Override
+    public Uni<VaultSecretsKV2ReadSecretMetadataResultData> readSecretMetadata(String path) {
+        return readSecretMetadata(DEFAULT, path);
+    }
+
+    @Override
+    public Uni<VaultSecretsKV2ReadSecretMetadataResultData> readSecretMetadata(String alias, String path) {
+        return getEngine(alias).readSecretMetadata(path);
+    }
+
+    @Override
     public Uni<Void> writeSecret(String path, Map<String, String> secret) {
         return writeSecret(DEFAULT, path, secret);
     }
@@ -86,6 +114,19 @@ public class VaultKvManager implements VaultKVSecretReactiveEngine {
     @Override
     public Uni<Void> writeSecret(String alias, String path, Map<String, String> secret) {
         return getEngine(alias).writeSecret(path, secret);
+    }
+
+    @Override
+    public Uni<Void> updateSecretMetadata(String path, Integer maxVersions, Boolean casRequired,
+            String deleteVersionAfter, Map<String, Object> customMetadata) {
+        return updateSecretMetadata(DEFAULT, path, maxVersions, casRequired, deleteVersionAfter, customMetadata);
+    }
+
+    @Override
+    public Uni<Void> updateSecretMetadata(String alias, String path, Integer maxVersions, Boolean casRequired,
+            String deleteVersionAfter, Map<String, Object> customMetadata) {
+        return getEngine(alias).updateSecretMetadata(path, maxVersions, casRequired, deleteVersionAfter,
+                customMetadata);
     }
 
     @Override
@@ -116,5 +157,15 @@ public class VaultKvManager implements VaultKVSecretReactiveEngine {
     @Override
     public Uni<List<String>> listSecrets(String alias, String path) {
         return getEngine(alias).listSecrets(path);
+    }
+
+    @Override
+    public Uni<List<String>> scanSecrets(String path) {
+        return scanSecrets(DEFAULT, path);
+    }
+
+    @Override
+    public Uni<List<String>> scanSecrets(String alias, String path) {
+        return getEngine(alias).scanSecrets(path);
     }
 }

@@ -56,6 +56,8 @@ public enum VaultAuthenticationType {
      */
     AWS_IAM,
 
+    JWT,
+
     /**
      * No authentication
      * <p>

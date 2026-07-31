@@ -5,6 +5,7 @@ import java.util.Map;
 
 import io.quarkus.vault.client.api.secrets.kv1.VaultSecretsKV1;
 import io.quarkus.vault.client.api.secrets.kv1.VaultSecretsKV1RequestFactory;
+import io.quarkus.vault.client.api.secrets.kv2.VaultSecretsKV2ReadSecretMetadataResultData;
 import io.smallrye.mutiny.Uni;
 
 public class KvV1 extends VersionedKv<VaultSecretsKV1RequestFactory> {
@@ -39,5 +40,26 @@ public class KvV1 extends VersionedKv<VaultSecretsKV1RequestFactory> {
     @Override
     public Uni<List<String>> listSecrets(String path) {
         return Uni.createFrom().completionStage(kvv1.list(path));
+    }
+
+    @Override
+    public Uni<Map<String, Object>> readSecretJson(Integer verison, String path) {
+        throw new UnsupportedOperationException("Unimplemented method 'readSecretJson'");
+    }
+
+    @Override
+    public Uni<List<String>> scanSecrets(String path) {
+        throw new UnsupportedOperationException("Unimplemented method 'scanSecrets'");
+    }
+
+    @Override
+    public Uni<Void> updateSecretMetadata(String path, Integer maxVersions, Boolean casRequired,
+            String deleteVersionAfter, Map<String, Object> customMetadata) {
+        throw new UnsupportedOperationException("Unimplemented method 'updateSecretMetadata'");
+    }
+
+    @Override
+    public Uni<VaultSecretsKV2ReadSecretMetadataResultData> readSecretMetadata(String path) {
+        throw new UnsupportedOperationException("Unimplemented method 'readSecretMetadata'");
     }
 }

@@ -1,0 +1,61 @@
+name: Internal
+category: sys
+mountable: false
+basePath: sys/internal
+
+operations:
+
+- name: listMounts
+  method: GET
+  path: ui/mounts
+  result:
+    kind: leased
+    unwrapData: true
+    dataType: $VisibleMountInfo
+
+types:
+
+- name: VisibleMountInfo
+  properties:
+  - name: auth
+    type: java.util.Map<String, $MountInfo>
+  - name: secret
+    type: java.util.Map<String, $MountInfo>
+
+- name: MountInfo
+  nested:
+  - name: Config
+    properties:
+    - name: defaultLeaseTtl
+      type: java.time.Duration
+    - name: maxLeaseTtl
+      type: java.time.Duration
+    - name: forceNoCache
+      type: Boolean
+  properties:
+  - name: accessor
+    type: String
+  - name: config
+    type: $MountInfo.Config
+  - name: deprecationStatus
+    type: String
+  - name: description
+    type: String
+  - name: externalEntropyAccess
+    type: Boolean
+  - name: local
+    type: Boolean
+  - name: options
+    type: java.util.Map<String, Object>
+  - name: pluginVersion
+    type: String
+  - name: runningPluginVersion
+    type: String
+  - name: runningSha256
+    type: String
+  - name: sealWrap
+    type: Boolean
+  - name: type
+    type: String
+  - name: uuid
+    type: String

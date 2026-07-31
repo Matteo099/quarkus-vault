@@ -1,6 +1,8 @@
 package io.quarkus.vault.runtime;
 
-import static io.quarkus.vault.runtime.DurationHelper.*;
+import static io.quarkus.vault.runtime.DurationHelper.fromSeconds;
+import static io.quarkus.vault.runtime.DurationHelper.fromVaultDuration;
+import static io.quarkus.vault.runtime.DurationHelper.toLongDurationSeconds;
 import static java.util.stream.Collectors.toMap;
 
 import java.util.List;
@@ -14,12 +16,16 @@ import jakarta.inject.Inject;
 import io.quarkus.vault.VaultSystemBackendReactiveEngine;
 import io.quarkus.vault.client.VaultClient;
 import io.quarkus.vault.client.VaultClientException;
+import io.quarkus.vault.client.api.sys.capabilitiesself.VaultSysCapabilitiesSelfCapabilitiesSelfResponse;
 import io.quarkus.vault.client.api.sys.init.VaultSysInitParams;
+import io.quarkus.vault.client.api.sys.internal.VaultSysInternalVisibleMountInfo;
 import io.quarkus.vault.client.api.sys.mounts.VaultSysMountsEnableConfig;
 import io.quarkus.vault.client.api.sys.mounts.VaultSysMountsListingVisibility;
+import io.quarkus.vault.client.api.sys.mounts.VaultSysMountsMountInfo;
 import io.quarkus.vault.client.api.sys.mounts.VaultSysMountsTuneParams;
 import io.quarkus.vault.client.api.sys.plugins.VaultSysPluginsRegisterParams;
 import io.quarkus.vault.client.api.sys.policy.VaultSysPolicyReadResultData;
+import io.quarkus.vault.client.api.sys.seal.VaultSysSealStatusResult;
 import io.quarkus.vault.runtime.config.VaultBuildTimeConfig;
 import io.quarkus.vault.sys.EnableEngineOptions;
 import io.quarkus.vault.sys.EngineListingVisibility;
@@ -63,6 +69,11 @@ public class VaultSystemBackendManager implements VaultSystemBackendReactiveEngi
         boolean isPerfStandByOk = this.buildTimeConfig.health().performanceStandByOk();
 
         return this.healthStatus(isStandByOk, isPerfStandByOk);
+    }
+
+    @Override
+    public Uni<VaultSysSealStatusResult> unseal(String key, Boolean reset, Boolean migrate) {
+        return Uni.createFrom().completionStage(vaultClient.sys().seal().unseal(key, reset, migrate));
     }
 
     @Override
@@ -239,7 +250,8 @@ public class VaultSystemBackendManager implements VaultSystemBackendReactiveEngi
         return Uni.createFrom()
                 .completionStage(vaultClient.sys().mounts().enable(mount, engineType, description, config,
                         options.options != null
-                                ? options.options.entrySet().stream().collect(toMap(Map.Entry::getKey, Map.Entry::getValue))
+                                ? options.options.entrySet().stream()
+                                        .collect(toMap(Map.Entry::getKey, Map.Entry::getValue))
                                 : null));
     }
 
@@ -311,5 +323,20 @@ public class VaultSystemBackendManager implements VaultSystemBackendReactiveEngi
     @Override
     public Uni<Void> removePlugin(String type, String name, @Nullable String version) {
         return Uni.createFrom().completionStage(vaultClient.sys().plugins().remove(type, name, version));
+    }
+
+    @Override
+    public Uni<Map<String, VaultSysMountsMountInfo>> listMounts() {
+        return Uni.createFrom().completionStage(vaultClient.sys().mounts().list());
+    }
+
+    @Override
+    public Uni<VaultSysInternalVisibleMountInfo> listVisibleMounts() {
+        return Uni.createFrom().completionStage(vaultClient.sys().internal().listMounts());
+    }
+
+    @Override
+    public Uni<VaultSysCapabilitiesSelfCapabilitiesSelfResponse> getCapabilitiesSelf(List<String> paths) {
+        return Uni.createFrom().completionStage(vaultClient.sys().capabilitiesSelf().capabilitiesSelf(paths));
     }
 }

@@ -70,6 +70,8 @@ public interface VaultAuthenticationConfig {
      */
     VaultAwsIamAuthenticationConfig awsIam();
 
+    VaultJwtAuthenticationConfig jwt();
+
     default boolean isDirectClientToken() {
         return clientToken().isPresent() || clientTokenWrappingToken().isPresent();
     }
@@ -90,5 +92,9 @@ public interface VaultAuthenticationConfig {
 
     default boolean isAwsIam() {
         return awsIam().role().isPresent();
+    }
+
+    default boolean isJwtToken() {
+        return jwt().mountPath() != null && !jwt().mountPath().isBlank();
     }
 }
